@@ -70,15 +70,13 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     //retrofit
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+
+    //coil
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.compose.material)
+    //test
+    testImplementation(libs.coroutines.test)
     implementation(libs.kotlinx.serialization.json)
-
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("io.mockk:mockk:1.13.5")
-    testImplementation("app.cash.turbine:turbine:1.0.0")
-
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
-
-    implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation("androidx.compose.material:material:1.6.1")
 }
