@@ -1,5 +1,6 @@
 package com.example.product.screen.home
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.product.core.BaseViewModel
 import com.example.product.repo.ProductRepository
@@ -44,6 +45,7 @@ class HomeViewModel @Inject constructor(
             repo.getProducts().collect() {
                 when (it) {
                     is Result.Success -> {
+                        Log.i(TAG, "fetchProductList:${it.data} ")
                         val categories = getDistinctCategories(it.data)
                         mutableState.update { it1 ->
                             it1.copy(

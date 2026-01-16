@@ -56,7 +56,6 @@ dependencies {
 
     //hilt
     implementation(libs.hilt.android)
-    implementation(libs.play.services.location)
     kapt(libs.hilt.compiler)
     implementation(libs.navigation.compose)
     implementation(libs.hilt.navigation.compose)
@@ -79,4 +78,14 @@ dependencies {
     //test
     testImplementation(libs.coroutines.test)
     implementation(libs.kotlinx.serialization.json)
+
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.navigation3.viewmodel)
+//    implementation(libs.androidx.navigation3.adaptive)
+    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-alpha06")
+    implementation("androidx.compose.material3.adaptive:adaptive-layout:1.3.0-alpha06")
+    implementation("androidx.compose.material3.adaptive:adaptive-navigation:1.3.0-alpha06")
+
+
 }

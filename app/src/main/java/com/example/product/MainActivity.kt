@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.product.navigation.NavDestination
 import com.example.product.theme.ProductAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -15,7 +14,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ProductAppTheme {
-                InitNavGraph(startDestination = NavDestination.HOME_SCREEN)
+                InitNavGraph()
+//                InitNavGraph(startDestination = NavDestination.HOME_SCREEN)
             }
         }
     }
