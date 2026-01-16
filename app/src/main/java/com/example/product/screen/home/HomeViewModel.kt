@@ -22,8 +22,7 @@ sealed class HomeAction {
     data class OnCategoriesClicked(val value: String?) : HomeAction()
 }
 
-sealed class HomeEvents {
-}
+data object HomeEvents
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -112,7 +111,7 @@ class HomeViewModel @Inject constructor(
 }
 
 sealed class Result<out T> {
-    object Loading : Result<Nothing>()
+    data object Loading : Result<Nothing>()
     data class Success<T>(val data: T) : Result<T>()
     data class Error(val message: String) : Result<Nothing>()
 }
