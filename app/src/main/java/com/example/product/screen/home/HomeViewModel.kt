@@ -39,47 +39,40 @@ class HomeViewModel @Inject constructor(
     BaseViewModel<HomeState, HomeEvents, HomeAction>(
         initialState = HomeState()
     ) {
-    var netWorkStatus_: NetWorkStatus? = null
+    var currentNetwork: NetWorkStatus? = null
 
     init {
         viewModelScope.launch {
-            networkStatusInit()
+            observeNetworkStatus()
         }
     }
 
-    suspend fun networkStatusInit() {
+    // ------------------------------
+    // Network Status Handling
+    // ------------------------------
+    suspend fun observeNetworkStatus() {
         netWorkStatus.getNetworkStatusFlow().collect {
+            currentNetwork = it
             when (it) {
                 NetWorkStatus.NetworkHasNoInternet -> {
-                    netWorkStatus_ = NetWorkStatus.NetworkHasNoInternet
-                    mutableState.update {
-                        it.copy(isLoading = false)
-                    }
-                    updateNetworkStatus(NetWorkStatus.NetworkHasNoInternet.msg)
-
+                    handleNetworkLostOrUnavailable(it)
                 }
 
                 NetWorkStatus.NetworkHasInternet -> {
-                    netWorkStatus_ = NetWorkStatus.NetworkHasInternet
                     fetchProductList()
                 }
 
                 NetWorkStatus.NetworkLost -> {
-                    netWorkStatus_ = NetWorkStatus.NetworkLost
-                    mutableState.update {
-                        it.copy(isLoading = false)
-                    }
-                    updateNetworkStatus(NetWorkStatus.NetworkLost.msg)
+                    handleNetworkLostOrUnavailable(it)
                 }
 
                 NetWorkStatus.NetworkAvailable -> {
-                    netWorkStatus_ = NetWorkStatus.NetworkAvailable
                 }
             }
         }
     }
 
-    fun updateNetworkStatus(msg: String) {
+    fun updateNetworkStatus(msg: String?) {
         mutableState.update { it1 ->
             it1.copy(netWorkMsg = msg)
         }
@@ -91,17 +84,7 @@ class HomeViewModel @Inject constructor(
             repo.getProducts().collect() {
                 when (it) {
                     is Result.Success -> {
-                        Log.i(TAG, "fetchProductList:${it.data} ")
-                        val categories = getDistinctCategories(it.data)
-                        mutableState.update { it1 ->
-                            it1.copy(
-                                filteredList = it.data,
-                                productResponse = it.data,
-                                isLoading = false,
-                                isRefreshing = false,
-                                categories = categories,
-                            )
-                        }
+                        handleProductSuccess(it.data)
                     }
 
                     is Result.Error -> {
@@ -115,6 +98,24 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun handleProductSuccess(products: List<ProductResponse>) {
+        val categories = getDistinctCategories(products)
+        mutableState.update {
+            it.copy(
+                filteredList = products,
+                productResponse = products,
+                isLoading = false,
+                isRefreshing = false,
+                categories = categories
+            )
+        }
+    }
+
+    private fun handleNetworkLostOrUnavailable(status: NetWorkStatus) {
+        mutableState.update { it.copy(isLoading = false) }
+        updateNetworkStatus(status.msg)
+    }
+
     override fun handleAction(action: HomeAction) {
         when (action) {
             is HomeAction.OnCategoriesClicked -> {
@@ -123,9 +124,7 @@ class HomeViewModel @Inject constructor(
 
             is HomeAction.OnRefreshProduct -> handleRefreshProduct()
             is HomeAction.ResetNetwork -> {
-                mutableState.update {
-                    it.copy(netWorkMsg = null)
-                }
+                updateNetworkStatus(null)
             }
         }
     }
@@ -149,8 +148,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun handleRefreshProduct() {
-        if (netWorkStatus_ == NetWorkStatus.NetworkHasInternet) {
-            netWorkStatus_?.msg?.let { Log.i(TAG, it) }
+        if (currentNetwork == NetWorkStatus.NetworkHasInternet) {
             mutableState.update {
                 it.copy(
                     isRefreshing = true
@@ -158,10 +156,8 @@ class HomeViewModel @Inject constructor(
             }
             fetchProductList()
         } else {
-            netWorkStatus_?.msg?.let {
-                mutableState.update { it1 ->
-                    it1.copy(netWorkMsg = it)
-                }
+            currentNetwork?.msg?.let {
+                updateNetworkStatus(it)
             }
         }
     }
