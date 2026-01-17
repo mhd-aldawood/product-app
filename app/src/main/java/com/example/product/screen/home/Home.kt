@@ -11,13 +11,10 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.product.repo.model.ProductResponse
 import com.example.product.screen.home.views.CategoryRow
 import com.example.product.screen.home.views.TwoColumnGrid
@@ -25,16 +22,17 @@ import com.example.product.screen.home.views.TwoColumnGrid
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun Home(
-    viewModel: HomeViewModel = hiltViewModel(),
+    uiState: HomeState,
     padding: PaddingValues = PaddingValues(15.dp),
+    onRefresh: () -> Unit,
+    onCategoriesClicked: (String?) -> Unit,
     onCardClicked: (ProductResponse) -> Unit = {}
 ) {
-    val uiState by viewModel.stateFlow.collectAsStateWithLifecycle()
 
 
     val pullRefreshState = rememberPullRefreshState(
-        refreshing = uiState.isLoading,
-        onRefresh = { viewModel.trySendAction(HomeAction.OnRefreshProduct) }
+        refreshing = uiState.isRefreshing,
+        onRefresh = { onRefresh.invoke() }
     )
 
     Box(
@@ -54,9 +52,7 @@ fun Home(
                 categories = uiState.categories,
                 selectedCategory = uiState.selectedCategory,
                 onCategoryClick = {
-                    viewModel.trySendAction(
-                        HomeAction.OnCategoriesClicked(it)
-                    )
+                    onCategoriesClicked.invoke(it)
                 }
             )
 
@@ -65,7 +61,7 @@ fun Home(
 
         // Pull-to-refresh indicator (top)
         PullRefreshIndicator(
-            refreshing = uiState.isLoading,
+            refreshing = uiState.isRefreshing,
             state = pullRefreshState,
             modifier = Modifier.align(Alignment.TopCenter)
         )

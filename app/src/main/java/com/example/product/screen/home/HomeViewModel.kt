@@ -3,6 +3,8 @@ package com.example.product.screen.home
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.product.core.BaseViewModel
+import com.example.product.core.NetWorkStatus
+import com.example.product.core.NetworkStateListener
 import com.example.product.repo.ProductRepository
 import com.example.product.repo.model.ProductResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,13 +15,17 @@ import javax.inject.Inject
 data class HomeState(
     val productResponse: List<ProductResponse> = emptyList(),
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val selectedCategory: String? = null,
     val filteredList: List<ProductResponse> = emptyList(),
     val categories: List<String> = emptyList(),
+    val netWorkMsg: String? = null
 )
 
 sealed class HomeAction {
     data object OnRefreshProduct : HomeAction()
+    data object ResetNetwork : HomeAction()
+
     data class OnCategoriesClicked(val value: String?) : HomeAction()
 }
 
@@ -28,15 +34,55 @@ data object HomeEvents
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repo: ProductRepository,
+    private val netWorkStatus: NetworkStateListener
 ) :
     BaseViewModel<HomeState, HomeEvents, HomeAction>(
         initialState = HomeState()
     ) {
+    var netWorkStatus_: NetWorkStatus? = null
+
     init {
         viewModelScope.launch {
-            fetchProductList()
+            networkStatusInit()
         }
+    }
 
+    suspend fun networkStatusInit() {
+        netWorkStatus.getNetworkStatusFlow().collect {
+            when (it) {
+                NetWorkStatus.NetworkHasNoInternet -> {
+                    netWorkStatus_ = NetWorkStatus.NetworkHasNoInternet
+                    mutableState.update {
+                        it.copy(isLoading = false)
+                    }
+                    updateNetworkStatus(NetWorkStatus.NetworkHasNoInternet.msg)
+
+                }
+
+                NetWorkStatus.NetworkHasInternet -> {
+                    netWorkStatus_ = NetWorkStatus.NetworkHasInternet
+                    fetchProductList()
+                }
+
+                NetWorkStatus.NetworkLost -> {
+                    netWorkStatus_ = NetWorkStatus.NetworkLost
+                    mutableState.update {
+                        it.copy(isLoading = false)
+                    }
+                    updateNetworkStatus(NetWorkStatus.NetworkLost.msg)
+                }
+
+                NetWorkStatus.NetworkAvailable -> {
+                    netWorkStatus_ = NetWorkStatus.NetworkAvailable
+                }
+            }
+        }
+    }
+
+    fun updateNetworkStatus(msg: String) {
+        mutableState.update { it1 ->
+            it1.copy(netWorkMsg = msg)
+        }
     }
 
     private val TAG = "HomeViewModel"
@@ -52,12 +98,14 @@ class HomeViewModel @Inject constructor(
                                 filteredList = it.data,
                                 productResponse = it.data,
                                 isLoading = false,
+                                isRefreshing = false,
                                 categories = categories,
                             )
                         }
                     }
 
                     is Result.Error -> {
+                        Log.e(TAG, it.message)
                     }
 
                     Result.Loading -> {}
@@ -74,6 +122,11 @@ class HomeViewModel @Inject constructor(
             }
 
             is HomeAction.OnRefreshProduct -> handleRefreshProduct()
+            is HomeAction.ResetNetwork -> {
+                mutableState.update {
+                    it.copy(netWorkMsg = null)
+                }
+            }
         }
     }
 
@@ -96,12 +149,21 @@ class HomeViewModel @Inject constructor(
     }
 
     fun handleRefreshProduct() {
-        mutableState.update {
-            it.copy(
-                isLoading = true
-            )
+        if (netWorkStatus_ == NetWorkStatus.NetworkHasInternet) {
+            netWorkStatus_?.msg?.let { Log.i(TAG, it) }
+            mutableState.update {
+                it.copy(
+                    isRefreshing = true
+                )
+            }
+            fetchProductList()
+        } else {
+            netWorkStatus_?.msg?.let {
+                mutableState.update { it1 ->
+                    it1.copy(netWorkMsg = it)
+                }
+            }
         }
-        fetchProductList()
     }
 
     fun getDistinctCategories(products: List<ProductResponse>): List<String> {
